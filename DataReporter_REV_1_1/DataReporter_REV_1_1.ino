@@ -1,4 +1,4 @@
-/*
+/*****
   HOW TO ADD A TASK:
     Add a MyNewTask.ino file using TaskTemplate.ino template.
     Replace TEMPLATE_TASK with YOUR_TASK.
