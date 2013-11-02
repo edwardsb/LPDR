@@ -8,13 +8,13 @@
 #define DATA_LOGGER_TASK      1
 #define DATA_REOPORT_TASK     2
 #define SYSTEMLOG_TASK        3
-#define MAX_TASKS             4
-// End of tasks number assignments.
+#define CONSOLE_TASK          4
+#define TEMPLATE_TASK         5
+#define MAX_TASKS             6
 
-// End of all tasks included in the DataReporter.
-
-//All tasks must have an initial state "case TASK_INIT_STATE::
+//All tasks must have an initial state "case TASK_INIT_STATE
 #define TASK_INIT_STATE    0  
+
 
 // SD card file names.
 #define SYS_LOG_FILE          "Syslog.txt"
@@ -47,32 +47,75 @@ extern bool sdBusy;
 // End of common global references.
 
 // Arduino Mega Pro (AtMega2560) I/O Port Pin assignments
-#define SOLAR_REG_ENABLE  9          // Active high.
-#define BATTERY_CHARGE_DISABLE  8    // Active low
-#define RTC_SPI_SELECT 7            // Active low.
-#define SD_SPI_SELECT 6             // Active low.
-#define FLASH_SPI_SELECT 5          // Active low.
-#define MODEM_ONKEY 4               // Active low (momentary).
-#define MODEM_ATCMD_READY 3
-#define MODEM_NETWORK_READY 2
+#define SOLAR_REG_ENABLE  10          // Active high.          <----------------------Move all up one. Start at 10
+// The PG output is low whenever the input to the 
+// Battery Manager (MCP73871) device is above the UVLO
+// threshold and greater than the battery voltage. See
+// Table 5-1 Pg. 25 in MCP73871 data sheet.
+#define BATTERY_MNGR_PGNOT        9  // Input with pullup resistor.
+// See Table 5-1 Pg. 25 in MCP73871 data sheet.
+#define BATTERY_MNGR_STAT2        8  // Input with pullup resistor.
+// See Table 5-1 Pg. 25 in MCP73871 data sheet.
+#define BATTERY_MNGR_STAT1_LBO    7  // Input with pullup resistor.
+
+#define SD_PWR_ENABLE 6            // Active HIGH.
+#define SD_SPI_SELECT 5             // Active low.
+#define RTC_SPI_SELECT 4           // Active low.
+
 // End of Arduino Mega Pro I/O Port Pin assignments
+
+//// Arduino Mega Pro (AtMega2560) I/O Port Pin assignments
+//#define SOLAR_REG_ENABLE  9          // Active high.          <----------------------Move all up one. Start at 10
+//// The PG output is low whenever the input to the 
+//// Battery Manager (MCP73871) device is above the UVLO
+//// threshold and greater than the battery voltage. See
+//// Table 5-1 Pg. 25 in MCP73871 data sheet.
+//#define BATTERY_MNGR_PGNOT        8  // Input with pullup resistor.
+//// See Table 5-1 Pg. 25 in MCP73871 data sheet.
+//#define BATTERY_MNGR_STAT2        7  // Input with pullup resistor.
+//// See Table 5-1 Pg. 25 in MCP73871 data sheet.
+//#define BATTERY_MNGR_STAT1_LBO    6  // Input with pullup resistor.
+//
+//#define SD_PWR_ENABLE 5            // Active HIGH.
+//#define SD_SPI_SELECT 4             // Active low.
+//#define RTC_SPI_SELECT 3           // Active low.
+//
+//// End of Arduino Mega Pro I/O Port Pin assignments
 
 // The following define the Arduino Mega Pro (AtMega2560) A/D
 // channel assignments for voltages monitored by the DataReporter.
-#define SOLAR_OUTPUT_MONITOR = 2;
-#define RFEGULATOR_5VDC_MONITOR = 0;
-#define BATTERY_MONITOR = 1;
+#define SOLAR_OUTPUT_MONITOR  0
+#define BATTERY_MONITOR  1
+#define RFEGULATOR_MONITOR  2
+#define LOAD_MONITOR  3
+// The following define the scale factors to convert the 10 bit
+// A/D readings to floating point voltages.
+// Monitored voltages are first scaled to 0 to 2.5 with resistor
+// dividers.
+#define  SOLAR_SF  0.028758950            // 47K to 4.7K
+#define  BATTERY_SF  0.004181460     // 6.8K to 4.7K
+#define  REGULATOR_SF  0.006257822   // 6.8K to 4.7K
+#define  LOAD_SF  0.006144431       // 6.8K to 4.7K
 
-#define SOLAR_SF = 0.026;
-#define REGULATOR_SF = 0.00970;
-#define BATTERY_SF = 0.0082;
 // End of A/D channel assignments.
 
-// The ATmega2560 External Interrupt 2, Port D Pin 2 is the wired to
-// the Arduino Mega Pro board's pin marked RX0<-0. The following two
-// definitions make this connection.
+// The ATmega2560 External Interrupt 4, Port E Pin 4 is wired
+// to the Sparkfun Mega Pro board's pin marked PWM 2.This is 
+// the Arduino's Digital Pin 2 and is also Arduino's External
+// Interrupt 0. This is the DataReporter's Bucket Tipped
+// Interrupt. These definitions make this connection.
 #define EXT_INTERRUPT_0  0
-#define DIGITAL_PIN_0  0
+#define DIGITAL_PIN_2  2
+// The ATmega2560 External Interrupt 5, Port E Pin 5 is wired
+// to the Sparkfun Mega Pro board's pin marked PWM 3.This is 
+// the Arduino's Digital Pin 3 and is also Arduino's External
+// Interrupt 1. This external interrupt. is tied to  the
+// Sparkfun Mega Pro board's pin marked RX0<-0. RX0 is the
+// Arduino IDE's serial transmit signal. External interrupt1
+// interrupts and wakes up the 2560 any time that the signal
+// is low. These definitions make this connection.
+#define EXT_INTERRUPT_1  1
+#define DIGITAL_PIN_3  3
 
 // BUCKET_SWITCH_DELAY the minimum number of watchdog 
 // timeout periods must occur, after the begining of 
@@ -93,7 +136,7 @@ extern bool sdBusy;
 // contact close and bounce.
 #define CONTACT_BOUNCE_MAX         2000
 // MAX_UNSIGNED_LONG???...
-#define MAX_UNSIGNED_LONG 0xFFFFFFFF;
+#define MAX_UNSIGNED_LONG 0xFFFFFFFF
 // The maximum number of valid ASCII decimal digits 
 // + '\r' + '\n' in an unsigned long.
 #define DATAPOINT_MAX_LENGTH            (10 + 2)
@@ -114,7 +157,7 @@ extern bool sdBusy;
 #define SYSLOG_MSGBUF_SIZE     30
 
 
-#define SYS_LOG_FILE          "Syslog.txt"
+#define SYS_LOG_FILE          "SYSLOG.TXT"
 #define DATA_LOGGING_FILE      "DataLogging.txt"
 
 // DS3234 RTC chip Definitions to match data sheet.
@@ -133,8 +176,24 @@ extern bool sdBusy;
   #define RTC_A1IE    0
 // Daste-time string fixed length.
 #define DATE_TIME_LENGTH    18
-
-
-
 // End of DS3234 RTC chip Definitions.
 
+// ATmega2560 Register definitions.
+#define PRR0    0x64
+#define PRR1    0x65
+
+// The monitor task has the following states.
+#define MONITOR_SLEEP                        1
+#define MONITOR_WAIT_RECORD                  2
+#define MONITOR_WAIT_REPORT                  3
+
+// Define the character in the time date string
+// returned by the ReadTimeDate() function.
+#define SETUP_MONTH_START      0
+#define SETUP_MONTH_END      2
+#define SETUP_YEAR_START       6
+#define SETUP_YEAR_END       8
+
+
+#define DATA_QUEUE1_FILE  "DataQ_1.txt"
+#define DATA_QUEUE2_FILE  "DataQ_2.txt"

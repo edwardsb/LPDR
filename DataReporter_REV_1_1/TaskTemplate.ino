@@ -31,7 +31,7 @@ void TaskTemTask(void)
     
     break;
     
-     case default:
+    default:
     
     break;
   }

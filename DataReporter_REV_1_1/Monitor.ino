@@ -13,11 +13,11 @@
 #include <avr/power.h>
 #include <avr/wdt.h>
 #include <SPI.h>
-  // The monitor task has the following states.
-  #define MONITOR_SLEEP                        1
-  #define MONITOR_WAIT_RECORD                  2
-  #define MONITOR_WAIT_REPORT                  3
-  
+
+extern boolean consoleInput;
+
+
+
   // Local error definitions.
   #define SD_WRT_ERR_MAX            3
   
@@ -59,9 +59,6 @@ void MonitorTask(void)
   static int sdWrtErrCount = SD_WRT_ERR_MAX;
   static boolean reportIsDone = false;
 
-  Serial.print("\nMonitorTask tasksState = ");
-  Serial.println(tasksState[MONITOR_TASK], DEC ); 
-  delay(300);
   switch(tasksState[MONITOR_TASK])
   {
     case TASK_INIT_STATE:
@@ -69,10 +66,6 @@ void MonitorTask(void)
       // started.     
       // Define and attach the Rain Bucket tip indicator
       // signal to the BucketTip() handler.
-      pinMode(DIGITAL_PIN_0, INPUT);
-      // Attach interrupt 0 to call BucketTip() on interrupt.
-      attachInterrupt(EXT_INTERRUPT_0, BucketTip, LOW);
-      
       // Comments for the following watchdog timer setup are at
       // the end of the Monitor task.
       // Set up the watchdog timer to interrupt every 8 seconds.
@@ -88,72 +81,96 @@ void MonitorTask(void)
       // Enter this state if we are supposed to attempt to sleep.
       // If all stayAwakeFlags are cleared then it is okay to
       // to sleep.
-        set_sleep_mode(SLEEP_MODE_PWR_SAVE);
-        Serial.println("Sleeping");
-        delay(300);
-        sleep_mode();  
-        //
-        // SLEEPING
-        //
-        // WAKEUP<----------------An interrupt has occured.
-        sleep_disable();
-        // Re-enable the peripherals.
-        power_all_enable();
-  
-      // Here when the MPU wakes up due to an interrupt. The interrupt
-      // may have been the watchdog or External interrupt 0. External
-      // Interrupt 0 is tied to the normally open momentary C type
-      // contact in the rain bucket. If the wakeup was due to the 
-      // external interrupt then the was interrupt detached in the 
-      // interrupt routine itself and will not occur until it is
-      // reattached some time later on. However the signal (switch)
-      // may still be closed or the contact may be bouncing. One 
-      // thing we know for sure is that the rain bucket cannot 
-      // physically tip again before at least a full watchdog time
-      // out period or (8 seconds). In the bucket tipped interrupt
-      // set the switch delay to BUCKET_SWITCH_DELAY to gaurantee
-      // that that many full watchdog periods pass before the 
-      // interrupt is aeattached.
-      // There are three cases:
-      //  1.  Watchdog woke us up. bucket tip may happen at any 
-      //      moment.
-      //  2.  Bucket tip woke us up don't worry about the wacthdog
-      //      it will only set the flag anyway.
-      Serial.print("Wakeup ");
-      if(bucketTipped)
-        Serial.println("from bucket tip.");
-      else
-        Serial.println("from watchdog");
-      delay(300);      
-
-      // Up date the minutes since the last report was made.
-      monitorSecsSinceReport+=WDT_SLEEP_SECONDS;     
-
-      // Check for a bucket tip.
-      cli();
-      if(bucketTipped)
+      if(keepAwakeFlags == 0)
       {
-        // The rain bucket's interrupt woke us up.
-        sei();
-        // Indicate that the DataLogger() tassk should delay past
-        // any switch bounce or momentary closure.
-        switchDelay = BUCKET_SWITCH_DELAY;
-        // Schedule the DataLogger() task to record the datapoint.
-        taskScheduled[DATA_LOGGER_TASK] = true;
-        tasksState[DATA_LOGGER_TASK] = TASK_INIT_STATE; 
-        // Go wait for the data to be logged.
-        tasksState[MONITOR_TASK] = MONITOR_WAIT_RECORD;
+          set_sleep_mode(SLEEP_MODE_PWR_SAVE);
+          Serial.println("Sleeping");
+          delay(300);
+          sleep_mode();  
+          //
+          // SLEEPING
+          //
+          // WAKEUP<----------------An interrupt has occured.
+          sleep_disable();
+          // Re-enable the peripherals.
+          //power_all_enable();
+        // Here when the MPU wakes up due to an interrupt. The interrupt
+        // may have been the watchdog or External interrupt 0. External
+        // Interrupt 0 is tied to the normally open momentary C type
+        // contact in the rain bucket. If the wakeup was due to the 
+        // external interrupt then the was interrupt detached in the 
+        // interrupt routine itself and will not occur until it is
+        // reattached some time later on. However the signal (switch)
+        // may still be closed or the contact may be bouncing. One 
+        // thing we know for sure is that the rain bucket cannot 
+        // physically tip again before at least a full watchdog time
+        // out period or (8 seconds). In the bucket tipped interrupt
+        // set the switch delay to BUCKET_SWITCH_DELAY to gaurantee
+        // that that many full watchdog periods pass before the 
+        // interrupt is aeattached.
+        // There are three cases:
+        //  1.  Watchdog woke us up. bucket tip may happen at any 
+        //      moment.
+        //  2.  Bucket tip woke us up don't worry about the wacthdog
+        //      it will only set the flag anyway.
+//*******************BEGIN DIAGNOSTIC CODE**************************
+//*******************BEGIN DIAGNOSTIC CODE**************************
+        Serial.print("Wakeup ");
+        if(bucketTipped)
+          Serial.print("from Bucket at ");
+        else if(consoleInput)
+          Serial.print("from Console at ");
+        else
+          Serial.print("from Watchdog at ");          
+        String setupDtString;
+        setupDtString+=ReadTimeDate(setupDtString);
+        Serial.println(setupDtString);          
+        delay(300);      
+//********************END DIAGNOSTIC CODE***************************
+//********************END DIAGNOSTIC CODE***************************      
+        // Up date the minutes since the last report was made.
+        monitorSecsSinceReport+=WDT_SLEEP_SECONDS;     
+ 
+        // Check for a bucket tip.
+        cli();
+        if(bucketTipped)
+        {
+          // The rain bucket's interrupt woke us up.
+          sei();
+          // Indicate that the DataLogger() tassk should delay past
+          // any switch bounce or momentary closure.
+          switchDelay = BUCKET_SWITCH_DELAY;
+          // Schedule the DataLogger() task to record the datapoint.
+          taskScheduled[DATA_LOGGER_TASK] = true;
+          tasksState[DATA_LOGGER_TASK] = TASK_INIT_STATE; 
+          // Go wait for the data to be logged.
+          tasksState[MONITOR_TASK] = MONITOR_WAIT_RECORD;
+        }
+        else if(consoleInput)
+        {
+          // The console interrupt woke us up.
+          sei(); 
+          keepAwakeFlags |= (1<<CONSOLE_TASK);
+          consoleInput = false;
+          taskScheduled[CONSOLE_TASK] = true;
+        }
+        else
+        {
+          // The watch dog interrupt woke us up.
+           sei();
+//*******************BEGIN DIAGNOSTIC CODE**************************
+//*******************BEGIN DIAGNOSTIC CODE**************************
+//Commented out for test.
+// Remain in the sleep-wakeup mode for testing.
+//          // Go see if itg is time to report to the database.
+//          taskScheduled[DATA_REOPORT_TASK] = true;
+//          tasksState[DATA_REOPORT_TASK] = TASK_INIT_STATE;   
+//          // Go wait for the database report.
+//          tasksState[MONITOR_TASK] = MONITOR_WAIT_REPORT;
+//********************END DIAGNOSTIC CODE***************************
+//********************END DIAGNOSTIC CODE***************************      
+        }
       }
-      else
-      {
-        // The watch dog interrupt woke us up.
-         sei();
-        // Go see if itg is time to report to the database.
-        taskScheduled[DATA_REOPORT_TASK] = true;
-        tasksState[DATA_REOPORT_TASK] = TASK_INIT_STATE;   
-        // Go wait for the database report.
-        tasksState[MONITOR_TASK] = MONITOR_WAIT_REPORT;
-      }        
       break;
       
       case MONITOR_WAIT_RECORD:
@@ -176,7 +193,7 @@ void MonitorTask(void)
           tasksState[MONITOR_TASK] = MONITOR_SLEEP;
         // else continue to wait here.
       break;
-    }      
+    }    // End of if(keepAwakeFlags == 0)  
 }
 // Enter this watchdog interrupt handler any time that 
 // the watch dog timer times out.

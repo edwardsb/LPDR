@@ -24,6 +24,18 @@ bool taskScheduled[MAX_TASKS];        // bool works, boolean does not???
 int tasksState[MAX_TASKS];
 // End of scheduler variables.
 
+// The processor is forced into the sleep mode by the Monitor
+// thread that is always scheduled. Other tasks may have
+// processes to complete during which the processor must remain
+// awake. To maccomplish this the tasks use the keepAwakeFlags
+// variable. Each task has a flag bit, indicated by the task
+// number, in keepAwakeFlags which it sets or clears to
+// prevent or allow the Monitor task from putting the processor
+// to sleep respectively. The task number 0 --> 15 indicates
+// the assigned bit 0 (LSB) to 15 (MSB). Bit set indicates
+// do not sleep.
+int keepAwakeFlags;
+
 // sdRecords contains the number of bucket tip entries recorded into
 // the BucketTips.txt file on the SD card. Data points (bucket tips)
 // cannot be recorded to the database at all times so they are
@@ -59,7 +71,14 @@ int sysLogQueueCount = 0;
 int sysLogQueueInIdx = 0;
 int sysLogQueueOutIdx = 0;
 
-//File sysLogFile;
+// System Log variables.
+File sysLogFile; 
+char *sysLogFileName = SYS_LOG_FILE;// System Log variables.
+bool sdBusy = false;
+// Create an array in RAM to access the messages.
+char sysLogMsgBuff[SYSLOG_MSGBUF_SIZE];
+// End of System Log variables.
+
 // End of variables associated with the system log queue.
 
 
@@ -130,14 +149,21 @@ int switchDelay;
 
 File datapointFile;
 
-// System Log variables.
-File sysLogFile; 
-char *sysLogFileName = SYS_LOG_FILE;// System Log variables.
-bool sdBusy = false;
-// Create an array in RAM to access the messages.
-char sysLogMsgBuff[SYSLOG_MSGBUF_SIZE];
-// End of System Log variables.
 
+// The consoleInput flag is set true any time that any 
+// character is received from the Arduino IDE Monitor.
+// See Console.AnyIdeConsoleInput() interrupt routine.
+boolean consoleInput;
+// When dataQueue1Busy is true it indicates that data points,
+// currently being recorded are placed in DataQ_1.txt and that
+// the DataQ_2.txt contains data points, if any, are ready to be
+// transmitted to the cloud database.
+bool dataQueue1Busy;
+// dataQueue1Count and dataQueue2Count indicate the number of data
+// points ready to be transmitted to the cloud based datatbase.
+int dataQueue1Count;
+int dataQueue2Count;
 
-
+File dataQ_1_File;
+File dataQ_2_File;
 

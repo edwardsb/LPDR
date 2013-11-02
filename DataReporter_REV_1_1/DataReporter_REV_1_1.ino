@@ -1,54 +1,55 @@
-/*********
-  HOW TO ADD A TASK:
-    Add a MyNewTask.ino file using TaskTemplate.ino template.
-    Replace TEMPLATE_TASK with YOUR_TASK.
-    Replace TaskTemTask with YourTask.
-    Add an index that identifies the new task added i.e.
-      #define YOUR_TASK        n     in Definitions.h
-    Initialize the new task entries in setup();
-         taskPointer[YOUR_TASK] = NewTask;
-         taskScheduled[YOUR_TASK] = false;
-         tasksState[YOUR_TASK] = TASK_INIT_STATE;    
-    Add and code the states, for the new task, as required.
-  HOW TO SCHEDULE A TASK:
-    Make sure that the task is not already scheduled.
-      Check taskScheduled[] with interrupts off.
-        Set the entry state newTaskState[]
-        Set taskScheduled[] true
-    Task is now running. To end the task:
-        Set taskScheduled[] false
-  SHARED RESOURCES:
-    All have fifos.
-    All mechanized by regular tasks.
-    All controlled by a control structure.
-    System log
-    File system
-    
-*/
+//
+// This file contains the required Arduino setup() and loop()
+// functions and the DataReporter's Executive Task Scheduler
+// that drives the DataReporter's associated task state
+// machines:
+//    Monitor
+//    LogData
+//    ReportData
+// All hardware and software initialization if done in the 
+// SetupYask().
 #include "Definitions.h"
- 
 
+//*******************BEGIN DIAGNOSTIC CODE**************************
+//*******************BEGIN DIAGNOSTIC CODE**************************
+
+int solarOut_A0;                   // Solar Panel A/D Channel 0 binary reading.
+int battery_A1;                    // Battery A/D Channel 1 binary reading.
+int regulator_A2;                  // 5 VDC regulator output.
+int load_A3;                  // 5 VDC regulator output.
+
+
+float solarPanelVolts;                     // Solar panel output voltage.
+float batteryVolts;                 // Battery terminal voltage.
+float regulatorVolts;                 // 5 VDC regulator output voltage.
+float loadVolts;                 // 5 VDC regulator output voltage.
+//********************END DIAGNOSTIC CODE***************************
+//********************END DIAGNOSTIC CODE***************************
 
 void setup() 
 {
+  // VERY IMPORTANT:
+  // VERY IMPORTANT:
+  // VERY IMPORTANT:
+  // Do not use an analog reference other than EXTERNAL because
+  // there is an external precision voltage referance connected to
+  // the 2560's AREF pin.
+  analogReference(EXTERNAL);
+  
   // All hardware and software setup is done in the setup task.
   SetupTask();
+delay(3000);  
 }
 
-// THE EXECUTIVE TASK SCHEDULER
 void loop() 
 {
-  String dateTimeString;
-//    // If the task is scheduled then call it.
-//    for(int taskIdx = 0; taskIdx < MAX_TASKS; taskIdx++)
-//    {
-//      if(taskScheduled[taskIdx])
-//      {
-//          taskPointers[taskIdx]();
-//      }
-//    }
-
-      Serial.println(ReadTimeDate(dateTimeString));
-      delay(5000);
+//********THE EXECUTIVE TASK SCHEDULER********
+    // If the task is scheduled then call it.
+    for(int taskIdx = 0; taskIdx < MAX_TASKS; taskIdx++)
+    {
+      if(taskScheduled[taskIdx])
+          taskPointers[taskIdx]();
+    }
+//******END OF YHE EXECUTIVE TASK SCHEDULER******
 }
 

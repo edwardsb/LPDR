@@ -92,8 +92,8 @@ int SetTimeDate(int d, int mo, int y, int h, int mi, int s)
 }
 String ReadTimeDate(String dateTimeString)
 {
-    saveRtcSpi_SPCR();
-SPI.setDataMode(SPI_MODE1);
+  saveRtcSpi_SPCR();
+  SPI.setDataMode(SPI_MODE1);
   int TimeDate [7]; //second,minute,hour,null,day,month,year
 
   //rtcString = dateTimeString;
