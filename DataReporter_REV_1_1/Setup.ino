@@ -95,6 +95,18 @@ void SetupTask(void)
 
   // If you add a new task initialize the following
   // global variab les for it here.
+  taskPointers[RTC_TASK] = RtcTask;
+  taskScheduled[RTC_TASK] = false;
+  tasksState[RTC_TASK] = TASK_INIT_STATE;
+
+  // If you add a new task initialize the following
+  // global variab les for it here.
+  taskPointers[SDRW_TASK] = SdReadWriteTask;
+  taskScheduled[SDRW_TASK] = false;
+  tasksState[SDRW_TASK] = TASK_INIT_STATE;
+  
+    // If you add a new task initialize the following
+  // global variab les for it here.
   taskPointers[MONITOR_TASK] = MonitorTask;
   taskScheduled[MONITOR_TASK] = false;
   tasksState[MONITOR_TASK] = TASK_INIT_STATE;
@@ -251,23 +263,8 @@ void SetupTask(void)
   dataQueue1Count = 0;
   dataQueue2Count = 0;
   Serial.println("End of Setup.");  
-  delay(300);
+  delay(100);
 
-  //Note that the DS3234 RTC and the SD card both communicate
-  // via the SPI bus. The SD card initialization apparently
-  // includes an ATmega 2560 SPI bus control register 
-  // that is compatible with the DS3234 tnd the Rtc_Init() is
-  // not required in fact it causes problems with the SD card
-  // operation.
-  //Rtc_Init();
-//
-//  // To set the RTC date and time: 
-//  //  1.  Uncomment the following line.
-//  //  2.  Run the program.
-//  //  3.  Comment the line.
-//  // date(1-31), month(1-12), year(0-99), hour(0-23), minute(0-59), second(0-59)
-//  //SetTimeDate(4,9,13,1,7,30);
-//
 
 }
 

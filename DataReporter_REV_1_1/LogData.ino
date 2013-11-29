@@ -26,56 +26,56 @@
 #define DATALOG_GET_TIMESTAMP      2
 #define DATALOG_FORM_ENTRY         3
 
-int logDataQueueIdx;
-String logDataNow; 
+//int logDataQueueIdx;
+//String logDataNow; 
 void LogDatapoint(void)      
 {
-  switch(tasksState[SYSTEMLOG_TASK])
-  {
-       case TASK_INIT_STATE:
-      // We are here after being scheduled by the PushDataLog()
-      // function or after logginf the last datapoint. See if 
-      // there are any moredatapoints to be logged in the 
-      // queue.
-      logDataQueueIdx = PopDataLog();
-      if(logDataQueueIdx == QUEUE_EMPTY)
-        // The queue is empty. We are all done. Unschedule
-        // this task.
-        taskScheduled[DATA_LOGGER_TASK] = false;
-      else
-        // We have a system log entry in the sysLogQueue 
-        // array. Capture the RTC for our exclusive use.
-        tasksState[DATA_LOGGER_TASK] = DATALOG_CAPTURE_RTC;
-      break;
-      
-    case DATALOG_CAPTURE_RTC:
-      // We are here to wait for exclusive access to the real 
-      // time clock.
-        cli();
-        if(!rtcBusy)
-        {
-          rtcBusy = true;
-          tasksState[DATA_LOGGER_TASK] = DATALOG_GET_TIMESTAMP;
-        }
-        sei();
-        // Continue to wait in this state.
-        break;
-      
-      case DATALOG_GET_TIMESTAMP:
-        // We are here to get the timestamp from the DS2434 RTC.
-        //logDataNow = ReadTimeDate();
-        rtcBusy = false;
-        tasksState[DATA_LOGGER_TASK] = DATALOG_FORM_ENTRY;
-        break;
-
-// 
-      
-      
-      
-      
-      
-      
-      
-      
-  }  // End of switch(tasksState[SYSTEMLOG_TASK]).
+//  switch(tasksState[SYSTEMLOG_TASK])
+//  {
+//       case TASK_INIT_STATE:
+//      // We are here after being scheduled by the PushDataLog()
+//      // function or after logginf the last datapoint. See if 
+//      // there are any moredatapoints to be logged in the 
+//      // queue.
+//      logDataQueueIdx = PopDataLog();
+//      if(logDataQueueIdx == QUEUE_EMPTY)
+//        // The queue is empty. We are all done. Unschedule
+//        // this task.
+//        taskScheduled[DATA_LOGGER_TASK] = false;
+//      else
+//        // We have a system log entry in the sysLogQueue 
+//        // array. Capture the RTC for our exclusive use.
+//        tasksState[DATA_LOGGER_TASK] = DATALOG_CAPTURE_RTC;
+//      break;
+//      
+//    case DATALOG_CAPTURE_RTC:
+//      // We are here to wait for exclusive access to the real 
+//      // time clock.
+//        cli();
+//        if(!rtcBusy)
+//        {
+//          rtcBusy = true;
+//          tasksState[DATA_LOGGER_TASK] = DATALOG_GET_TIMESTAMP;
+//        }
+//        sei();
+//        // Continue to wait in this state.
+//        break;
+//      
+//      case DATALOG_GET_TIMESTAMP:
+//        // We are here to get the timestamp from the DS2434 RTC.
+//        //logDataNow = ReadTimeDate();
+//        rtcBusy = false;
+//        tasksState[DATA_LOGGER_TASK] = DATALOG_FORM_ENTRY;
+//        break;
+//
+//// 
+//      
+//      
+//      
+//      
+//      
+//      
+//      
+//      
+//  }  // End of switch(tasksState[SYSTEMLOG_TASK]).
 }

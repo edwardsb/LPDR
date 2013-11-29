@@ -9,6 +9,7 @@
 */
 
 #include "Definitions.h"
+#include "SysLog.h"
 #include <avr/sleep.h>
 #include <avr/power.h>
 #include <avr/wdt.h>
@@ -84,7 +85,6 @@ void MonitorTask(void)
       if(keepAwakeFlags == 0)
       {
           set_sleep_mode(SLEEP_MODE_PWR_SAVE);
-          Serial.println("Sleeping");
           delay(300);
           sleep_mode();  
           //
@@ -117,14 +117,11 @@ void MonitorTask(void)
 //*******************BEGIN DIAGNOSTIC CODE**************************
         Serial.print("Wakeup ");
         if(bucketTipped)
-          Serial.print("from Bucket at ");
+          Serial.println("from Bucket");
         else if(consoleInput)
-          Serial.print("from Console at ");
+          Serial.println("from Console");
         else
-          Serial.print("from Watchdog at ");          
-        String setupDtString;
-        setupDtString+=ReadTimeDate(setupDtString);
-        Serial.println(setupDtString);          
+          Serial.println("from Watchdog");          
         delay(300);      
 //********************END DIAGNOSTIC CODE***************************
 //********************END DIAGNOSTIC CODE***************************      
@@ -170,7 +167,7 @@ void MonitorTask(void)
 //********************END DIAGNOSTIC CODE***************************
 //********************END DIAGNOSTIC CODE***************************      
         }
-      }
+      }    // End of if(keepAwakeFlags == 0)
       break;
       
       case MONITOR_WAIT_RECORD:
@@ -193,7 +190,7 @@ void MonitorTask(void)
           tasksState[MONITOR_TASK] = MONITOR_SLEEP;
         // else continue to wait here.
       break;
-    }    // End of if(keepAwakeFlags == 0)  
+    }  //  End if switch(tasksState[MONITOR_TASK])
 }
 // Enter this watchdog interrupt handler any time that 
 // the watch dog timer times out.
@@ -250,13 +247,23 @@ boolean monitorTimeout()
   else
   {
     monitorElapsedTime = currentMillis - monitorPreviousMillis;
+//    
+//    Serial.print("monitorTimeout() monitorElapsedTime = ");
+//    Serial.print(monitorElapsedTime,DEC);
+//    Serial.print("  monitorTimeoutPeriod = ");
+//    Serial.print(monitorTimeoutPeriod);
+//    Serial.print("  currentMillis = ");
+//    Serial.println(currentMillis);
+//
     if (monitorElapsedTime >= monitorTimeoutPeriod)
     {
-      return 1; //timeout period has been reached
+      //Serial.print("Returning 1 ");
+      return true; //timeout period has been reached
     }
     else
     {
-      return 0; //timeout period has not been reached
+       //Serial.print("Returning 0 ");
+      return false; //timeout period has not been reached
     }
   }
 }

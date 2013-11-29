@@ -1,8 +1,106 @@
 //
+// Task description...
 //
-//
-
 #include <SPI.h>
+#include "Definitions.h"
+#include "Rtc.h"
+
+//
+// Local definitions go here.
+//
+  #define RTC_STATE_1    1
+  #define RTC_STATE_2    2
+//
+// Local globals go here.
+//
+  rtcControl *rtcCurrentReqtPtr;
+  String rtcTempString;
+
+// Enter here only from the exec.
+void RtcTask(void)      
+{
+  switch(tasksState[RTC_TASK])
+  {
+    case TASK_INIT_STATE:
+
+    // We are here for because there may be a request for an 
+    // RTC operation.
+    // Check for and RTC requets in the RTC's FIFO.
+    rtcCurrentReqtPtr = PopRtc();
+    //Serial.print("RtcTask() case: TASK_INIT_STATE rtcCurrentReqtPtr = ");
+    //Serial.println((unsigned long)rtcCurrentReqtPtr, HEX);
+    if( rtcCurrentReqtPtr != (rtcControl*)QUEUE_EMPTY)
+    {
+      // We have a request for an RTC operation.
+      switch(rtcCurrentReqtPtr->op)
+      {
+        case RTC_SET_DATETIME :
+          // Call the SetRtcDateTime() function with a pointer to
+          // the string containing the new date-time fields.
+          SetRtcDateTime( *rtcCurrentReqtPtr->data.rtcSetString );
+          // Let caller know that the requested RTC operation is 
+          // complete.
+          rtcCurrentReqtPtr->stat = SUCCESS;
+          // Then continue in this state to see if there are any
+          // other RTC operation requests in the FIFO.
+        break;
+        case RTC_READ_DATE_TIME:
+         // Here to read the RTC, convert the RTC's date-time
+         // register data to ASCII and place the ASCII date-time
+         // string into the caller's buffer. Clear our temp
+         // buffer first.
+          rtcTempString = "";        
+          rtcTempString+=ReadTimeDate(rtcTempString);
+          //Serial.print("RtcTask() Date-Time = ");
+          //Serial.println(rtcTempString);          
+         // Now move the date-time string to the lient's
+         // control structure.
+         *rtcCurrentReqtPtr->data.rtcSetString = rtcTempString;
+         rtcCurrentReqtPtr->stat = SUCCESS;         
+        break;
+        
+        case RTC_DEC_SECONDS:
+        
+        break;
+        case RTC_INC_SECONDS:
+        
+        break;
+        
+        default:
+        
+        break;
+      }      
+    }
+    else
+    {
+      // There are no more RTC operation requests in the
+      // queue unschedule this state machine.
+      tasksState[RTC_TASK] = TASK_INIT_STATE;
+      taskScheduled[RTC_TASK] = false;
+    }
+    break;
+    
+    case RTC_STATE_1:
+    
+    break;
+    
+    case RTC_STATE_2:
+    
+    break;
+    
+    default:
+      //*******************BEGIN DIAGNOSTIC CODE**************************
+      //*******************BEGIN DIAGNOSTIC CODE**************************
+      // We have to do something here this is a fatal error
+      // and the DataReporter will not operate. Maybe we
+      // should leave a note in the EEPROM?
+      Serial.println("Error opening the sysLogFile");
+      //********************END DIAGNOSTIC CODE***************************
+      //********************END DIAGNOSTIC CODE***************************    
+    break;
+  }
+  
+}
 
 byte spiRtcSpcr;
 int Rtc_Init()
@@ -47,49 +145,6 @@ int Rtc_Init()
   delay(10);
 }
 
-#define RTC_SEC_ADDR        0
-#define RTC_MIN_ADDR        1
-#define RTC_HOUR_ADDR       2
-#define RTC_DAY_ADDR        3
-#define RTC_DATE_ADDR       4
-#define RTC_MONTH_ADDR      5
-#define RTC_YEAR_ADDR       6
-
-
-int SetTimeDate(int d, int mo, int y, int h, int mi, int s)
-{ 
-  int TimeDate [7]={s, mi, h, 0, d, mo, y};
-  saveRtcSpi_SPCR();
-  SPI.setDataMode(SPI_MODE1);
-  // Convert the date-time values from the input parameters to
-  // BCD, position, insert  into date-time bytes and write them
-  //to the RTC date and time registers.
-  for(int timeDateAddr=0; timeDateAddr<=6; timeDateAddr++)
-  {
-//    Serial.print("RTI Addr = ");
-//    Serial.print(timeDateAddr,DEC);
-//    Serial.print("  TimeDate[] = ");
-//    Serial.println(TimeDate[timeDateAddr],DEC);
-    // Go by the day-of-the-week we don't use it.
-    if(timeDateAddr==RTC_DAY_ADDR )
-      timeDateAddr++;
-    int b= TimeDate[timeDateAddr]/10;
-    int a= TimeDate[timeDateAddr]-b*10;
-    if(timeDateAddr==RTC_HOUR_ADDR)
-    {
-      if (b==2)
-	b=B00000010;
-      else if (b==1)
-	b=B00000001;
-    }	
-    TimeDate[timeDateAddr]= a+(b<<4);		  
-    digitalWrite(RTC_SPI_SELECT, LOW);
-    SPI.transfer(timeDateAddr+0x80); 
-    SPI.transfer(TimeDate[timeDateAddr]);        
-    digitalWrite(RTC_SPI_SELECT, HIGH);
-    restoreRtcSpi_SPCR();
-  }
-}
 String ReadTimeDate(String dateTimeString)
 {
   saveRtcSpi_SPCR();
@@ -185,6 +240,71 @@ String ReadTimeDate(String dateTimeString)
   restoreRtcSpi_SPCR();
   return(dateTimeString);
 }
+
+
+void SetRtcDateTime(String dateTimeString)
+{
+  // the rtcMemInMap[] array maps the RTC memory addresses
+  // 0 --> 6 to the to the op input field index 0 --> 5
+  // in the rtcSetString string object.
+  byte rtcMemInMap[7] = {10,8,6,0,2,0,4};
+  // stringIdx is used to pick the date-time value substrings
+  // out of the rtcSetString string
+  int substringIdx;
+  // rtcMemAddr indicates the current RTC memory location.
+  int rtcMemAddr;
+  // rtcMemVal  is the data to be stored into the RTC memory
+  // location.
+  int rtcMemVal;
+  // Most and least significant nibble of RTC memory location
+  int msn, lsn;  //Most and least significant nibble of RTC.
+  // Save the current RTC operating mode.
+  saveRtcSpi_SPCR();
+  SPI.setDataMode(SPI_MODE1);
+  // Go through each of the 7 RTC memory locations rtcMemAddr
+  // and use the substring field, indicated by rtcMemInMap[],
+  // and use that field to set the RTC memory data.
+  for(rtcMemAddr = 0; rtcMemAddr <= 6; rtcMemAddr++)
+  {
+    if(rtcMemAddr == RTC_DAY_ADDR)
+      rtcMemAddr++;  // Go past day-of-week.
+    // Get the substring indicated by rtcMemInMap[rtcMemAddr] 
+    // and then convert that substring to integer in rtcMemVal. 
+    substringIdx = rtcMemInMap[rtcMemAddr];
+    rtcMemVal = (int)(rtcSetString.substring(substringIdx, substringIdx+2).toInt());
+//    Serial.print("substringIdx = ");
+//    Serial.print(substringIdx, DEC);
+//    Serial.print("  rtcMemAddr = ");
+//    Serial.print(rtcMemAddr, DEC);
+//    Serial.print("  substring = ");
+//    Serial.print(rtcSetString.substring(substringIdx, substringIdx+2));
+//    Serial.print("  rtcMemVal = ");
+//    Serial.println(rtcMemVal, DEC);    
+    msn = rtcMemVal / 10;
+    lsn = rtcMemVal - msn * 10;
+    // If this is the hour then the format may be 12 hour AM/PM
+    // military 24 hour time. They are the same for AM. If it is
+    // PM then the msn may be:
+    // msn = 1   then AM/PM
+    // msn = 2   then 24 military and bit 5 (= 20) hours must be
+    //           set to 1 making the msn = 20 hours.
+    if(rtcMemAddr == RTC_HOUR_ADDR)
+    {
+      if (msn == 2)
+	msn = B00000010;
+      else if (msn == 1)
+	msn = B00000001;
+    }	
+    rtcMemVal= lsn + (msn << 4);
+    // Now write the RTC's rtcMemAddr memory location.	  
+    digitalWrite(RTC_SPI_SELECT, LOW);  // RTC slave select
+    SPI.transfer(rtcMemAddr+0x80);      // Address with write bit set.
+    SPI.transfer(rtcMemVal);            // Data.        
+    digitalWrite(RTC_SPI_SELECT, HIGH); // RTC slave de-select.
+  }
+  restoreRtcSpi_SPCR();
+}
+
 
 void   saveRtcSpi_SPCR(void)
 {

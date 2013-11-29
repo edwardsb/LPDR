@@ -1,5 +1,14 @@
 
 
+#ifndef __DATAREPORTER_DEF_1
+  #define __DATAREPORTER_DEF_1
+  enum result
+  {
+    NOT_STARTED,
+    FAIL,
+    SUCCESS  
+  };
+#endif
 
 //*******************TASK NUMBERS**********************
 // The following assign numbers to all tasks included in the
@@ -9,8 +18,10 @@
 #define DATA_REOPORT_TASK     2
 #define SYSTEMLOG_TASK        3
 #define CONSOLE_TASK          4
-#define TEMPLATE_TASK         5
-#define MAX_TASKS             6
+#define RTC_TASK              5
+#define SDRW_TASK             6
+#define TEMPLATE_TASK         7
+#define MAX_TASKS             8
 
 //All tasks must have an initial state "case TASK_INIT_STATE
 #define TASK_INIT_STATE    0  
@@ -47,7 +58,7 @@ extern bool sdBusy;
 // End of common global references.
 
 // Arduino Mega Pro (AtMega2560) I/O Port Pin assignments
-#define SOLAR_REG_ENABLE  10          // Active high.          <----------------------Move all up one. Start at 10
+#define SOLAR_REG_ENABLE  10          // Active high.
 // The PG output is low whenever the input to the 
 // Battery Manager (MCP73871) device is above the UVLO
 // threshold and greater than the battery voltage. See
@@ -150,7 +161,7 @@ extern bool sdBusy;
 #define SDCARD_NOCHAR_ERROR             6
 #define SDCARD_ILGCHAR_ERROR            7
 
-#define QUEUE_EMPTY    -1
+#define QUEUE_EMPTY    0
 
 // The following define the index into the System log message
 // pointer task0MsgPointers[] array in LogMessages.ino file
@@ -176,6 +187,7 @@ extern bool sdBusy;
   #define RTC_A1IE    0
 // Daste-time string fixed length.
 #define DATE_TIME_LENGTH    18
+#define DATE_TIME_ARGUMENTS 6    // Arguments required for RTC set.
 // End of DS3234 RTC chip Definitions.
 
 // ATmega2560 Register definitions.
@@ -197,3 +209,22 @@ extern bool sdBusy;
 
 #define DATA_QUEUE1_FILE  "DataQ_1.txt"
 #define DATA_QUEUE2_FILE  "DataQ_2.txt"
+
+#define RTC_SEC_ADDR        0
+#define RTC_MIN_ADDR        1
+#define RTC_HOUR_ADDR       2
+#define RTC_DAY_ADDR        3
+#define RTC_DATE_ADDR       4
+#define RTC_MONTH_ADDR      5
+#define RTC_YEAR_ADDR       6
+
+#define MAX_UNSIGNED_LONG 0xFFFFFFFF;
+
+
+  // The following define the index into the System log message
+  // pointer task0MsgPointers[] array in LogMessages.ino file
+  #define SYSLOG_MSGBUF_SIZE     30
+
+  //***************SYSTEM_LOG_MESSAGES*************************
+  #define CNSL_TEST_MSG         0
+

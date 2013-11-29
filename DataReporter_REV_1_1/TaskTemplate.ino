@@ -12,7 +12,6 @@
 //
 // Local globals go here.
 //
-int ttMyInt;
 
 // Enter here only from the exec.
 void TaskTemTask(void)      
