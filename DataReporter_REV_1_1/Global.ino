@@ -153,7 +153,7 @@ boolean consoleInput;
 // currently being recorded are placed in DataQ_1.txt and that
 // the DataQ_2.txt contains data points, if any, are ready to be
 // transmitted to the cloud database.
-bool dataQueue1Busy;
+volatile bool dataQueue1Busy;
 // dataQueue1Count and dataQueue2Count indicate the number of data
 // points ready to be transmitted to the cloud based datatbase.
 int dataQueue1Count;

@@ -5,6 +5,7 @@
   
   #define SYSLOG_MAX_INTPARMS    2
   #define SYSLOG_1_PARAMETER     1
+  #define SYSLOG_2_PARAMETER     2
     enum sysLogDataType
   {
     SYSLOG_INTEGER,

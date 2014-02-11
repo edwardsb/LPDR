@@ -8,6 +8,7 @@
 #include "SysLog.h"
 #include <SPI.h>
 #include <SD.h>
+#include <gprsOperation.h>
 #include <String.h>
 
 extern boolean consoleInput;
@@ -19,22 +20,35 @@ extern rtcControl cnslRtcControl;
 //
 // Local definitions go here.
 //
-#define CNSL_GET_RTC_ARGS    1
-#define CNSL_SCHED_RTC_TASK  2
-#define CNSL_WAIT_RTC        3
-#define CNSL_SYSLOG_MSG      4
-#define CNSL_WAIT_SYSLOG     5
+#define CNSL_GET_RTC_ARGS        1
+#define CNSL_SCHED_RTC_TASK      2
+#define CNSL_WAIT_RTC            3
+#define CNSL_SYSLOG_MSG          4
+#define CNSL_WAIT_SYSLOG         5
+#define CNSL_ENABLE_MODEM        6
+#define CNSL_WAIT_MODEM          7
+#define CNSL_WAIT_SERVER_DATA    8
+#define CNSL_WAIT_ABORT          9
 
 #define CNSL_RTC_INPUT_WAIT  5000  // 10 * mSecs = 10 seconds/character.
 #define CNSP_RTC_SET_LENGTH  12    // exactly 12 digits mmddyyhhnnss.
+
+#define CNSL_SERVER_DATA_TIMEOUT    30000  // 30 seconds.
+#define CNSL_SERVER_ABORT_TIMEOUT   1000   // 1 second for nextcharacter.
 //
 // Local globals go here.
 //
-File myFile;
 String rtcSetString("");
 
+char cnslServer[] = "arduino.cc";
+char cnslPath[] = "/asciilogo.txt";
+char cnslModemInput;
 rtcControl cnslRtcControl;
 sysLogControl cnslSysLogControl;
+gprsControl cnslGprsControl;
+
+unsigned long cnslTimeoutPeriod;
+unsigned cnslPreviousMillis;
 
 // Enter here only from the exec.
 void ConsoleTask(void)      
@@ -91,26 +105,8 @@ void ConsoleTask(void)
           digitalWrite(SOLAR_REG_ENABLE, LOW);
           consoleExit();
         break;
-         //*********************************************
-         //*********************************************  
-        case 'e':
-          Serial.println("SD Card Power Enable.");
-          digitalWrite(SD_PWR_ENABLE, HIGH);
-          consoleExit();
-        break;        
-        case 'd':
-          Serial.println("SD Card Power Disable.");
-          digitalWrite(SD_PWR_ENABLE, LOW);
-          consoleExit();
-        break;
         //*********************************************
         //*********************************************  
-//        case 'I':
-//          Serial.println("SD Card Initialization.");
-//          InitializeSdCaed();
-//          Serial.println("SD Card Initialization Complete.");
-//          consoleExit();
-//        break;     
         case 't':
           Serial.println("SD Card Testing Started.");
           TestSdOperation();
@@ -129,6 +125,20 @@ void ConsoleTask(void)
           Serial.println("Illegal command.");
           consoleExit();
         break;
+
+        case 'M':
+          Serial.println("Enabling Quectel M10 Modem.");
+          // Let Monitor know not to sleep until we finish
+          // setting the clock.
+          keepAwakeFlags |= (1<<CONSOLE_TASK);
+          // Schedule the console task to get the arguments 
+          // for setting the RTC from the IDE Serial Console
+          // input.
+          tasksState[CONSOLE_TASK] = CNSL_ENABLE_MODEM;
+        break;        
+
+
+
       }  //  End of switch(Serial.read())      
     }  // End of if(Serial.available() != 0)
     else 
@@ -136,7 +146,8 @@ void ConsoleTask(void)
       Serial.println("Error console scheduled with no input?");
       delay(1000);
       if(Serial.available() > 1) // if we received too many bytes then clear the buffer
-      Serial.flush();          
+      Serial.flush();     
+      consoleExit();     
     }
     break;
     
@@ -208,7 +219,7 @@ void ConsoleTask(void)
         consoleExit();
     
     break;
-    case CNSL_SYSLOG_MSG://***************************************************************************************************************************************
+    case CNSL_SYSLOG_MSG:
       // We are here to write a test message to the system 
       // log file,Syslog.txt, on the SD card. Since the SD
       // card is a shared resource we have to queue up a
@@ -223,16 +234,11 @@ void ConsoleTask(void)
       // Fill out the system log control structure.
       cnslSysLogControl.msgIdx = CNSL_TEST_MSG; // Set index to message.
       cnslSysLogControl.stat = NOT_STARTED;                 // Status
-//      cnslSysLogControl.type = SYSLOG_INTEGER;
-//      cnslSysLogControl.validParnmCount = SYSLOG_MAX_INTPARMS;
-//      cnslSysLogControl.parameter.intParm[0] = 1;
-//      cnslSysLogControl.parameter.intParm[1] = 2;
-      
       cnslSysLogControl.type = SYSLOG_FLOAT;
       cnslSysLogControl.validParnmCount = SYSLOG_1_PARAMETER;
       cnslSysLogControl.parameter.floatParm = 12345.6789;
       
-      // Set console state to wait for RTC task to complete.
+      // Set console state to wait for system log task to complete.
       tasksState[CONSOLE_TASK] = CNSL_WAIT_SYSLOG;
       // Push the RTC request onto the RTC's FIFO queue.
       cli();    // Interrupts off.
@@ -245,9 +251,154 @@ void ConsoleTask(void)
       // log request to complete.
       if(cnslSysLogControl.stat == SUCCESS)
         consoleExit();
+      break;
       
-    default:
+    case CNSL_ENABLE_MODEM://***********************************************************************************************************************
+      // This Quectel M10 modem test consists of:
+      //  1.  Power on the modem
+      //  2.  Request the modem resource:
+      //    A.  Register.
+      //    B.  Configure the modem for GPRS data
+      //        transfers.
+      //    C.  Connect to the requested server.
+      //    D.  Leave the modem in the data mode.
+      //  3.  Allow this task to communicate with
+      //      specified server.
+      //  4.  Power off the modem.
+      //
+      // Initialize the modem control structure.
+      cnslGprsControl.gprsStatus = GPRS_POWER_OFF;
+      cnslGprsControl.clientStatus = GPRS_CLIENT_WAIT;
+      cnslGprsControl.server = cnslServer;
+      cnslGprsControl.port = 80;
+      // Push the request onto the GPRS operations FIFO
+      // queue.
+      cli();  //Interrupts off.
+      PushGprs(&cnslGprsControl);
+      sei();  //Interrupts on
+      tasksState[CONSOLE_TASK] = CNSL_WAIT_MODEM;
+    break;  
     
+    case CNSL_WAIT_MODEM:
+      // Wait for the modem to register and connect to
+      // to my server.
+      if(cnslGprsControl.gprsStatus == GPRS_DATA_EXCHANGE)
+      {
+        // We are connected to the Arduino server through
+        // the modem. We now directly control the modem
+        // until we are through talking to the server. Let
+        // the op know and request that the Arduino logo 
+        // be sent.
+        
+        Serial.println("connected");
+        // Make an HTTP GET request:
+        Serial1.print("GET ");
+        Serial1.print(cnslPath);
+        Serial1.println(" HTTP/1.1");
+        Serial1.print("Host: ");
+        Serial1.println(cnslServer);
+        Serial1.println("Connection: close");
+        Serial1.println(); 
+        cnslSetTimeout(CNSL_SERVER_DATA_TIMEOUT); 
+        tasksState[CONSOLE_TASK] = CNSL_WAIT_SERVER_DATA;
+        Serial.println("Waiting 30 seconds for server data.");
+        Serial.println("type a<ENTER> to abort.");      
+      }
+      else if(cnslGprsControl.gprsStatus == GPRS_OPERATION_ERROR)
+      {
+        // There was a problem registering, configuring
+        // the modem or connecting to the server.Tell op 
+        // what the error was. The GprsOperations() task
+        // has written a message to the system log file.
+        // The following information would not be used by 
+        // the GprsOperations() client.
+        Serial.println("Error registering or configuring the modem.");
+        Serial.println("See the system log.");
+        consoleExit();        
+      }
+      // else continue to wait.    
+    break;
+
+    case CNSL_WAIT_SERVER_DATA:
+      char sentChar;
+      // See if we have waited too long.
+      if(!cnslTimeout())
+      {
+        // Check for an abort entry from the IDE's Serial
+        // Monitor.
+        if(Serial.available() != 0)
+        {
+          // We have received an input from the IDE
+          // Serial Monitor See if op wants to abort.          
+          sentChar = Serial.read();
+          if(sentChar == 'a')
+          {
+          // The op wants to abort any further input from
+          // the server. We need to flush all serial input
+          // from the IDE and modem. Set a new time out, 
+          // wait in another state to drain any further
+          // characters that the server or IDE may be 
+          // sending.
+            Serial.flush();
+            Serial1.flush();
+            // There may still be more characters comming.
+            // Continue to flush until we'er sure there is 
+            // no more left.
+            cnslSetTimeout(CNSL_SERVER_ABORT_TIMEOUT); 
+            tasksState[CONSOLE_TASK] = CNSL_WAIT_ABORT;
+            Serial.println("Wait while aborting.");
+          }
+          // else continue to wait.
+        }        
+        else if(Serial1.available() != 0)
+        {
+          // Output anything that the server sends to 
+          // the IDE monitor.
+          sentChar = Serial1.read();
+          Serial.print(sentChar);        
+        }
+        // else continue to wait.        
+      }
+      else
+      {
+        // We have timed out waiting for the server
+        // to respond with the requested page.
+        Serial.println("Timed out waiting for server response.");
+        cnslSetTimeout(CNSL_SERVER_ABORT_TIMEOUT); 
+        tasksState[CONSOLE_TASK] = CNSL_WAIT_ABORT;
+        Serial.println("Wait while aborting.");
+      }
+    break;
+    
+    case CNSL_WAIT_ABORT:
+      // Flush the the serial inputs is they have 
+      // any data.
+      if(cnslTimeout())
+      {
+        // We have waited for any further input from
+        // the op and the server make sure that any
+        // further data received during the delay
+        // is discarded.
+        if(Serial.available() || Serial1.available())
+        {
+          Serial.flush();
+          Serial1.flush();
+          // Wait a little longer to detect any further
+          // further input from the opor server..
+          cnslSetTimeout(CNSL_SERVER_ABORT_TIMEOUT); 
+        }
+        else
+        {
+          // There is no more input from the server or
+          // the op. Give up the modem resource. 
+          cnslGprsControl.clientStatus = GPRS_CLIENT_DONE;
+          consoleExit();
+        }
+      }
+    break;
+    
+    default:
+      consoleExit();
     break;
   }
   
@@ -269,12 +420,13 @@ void AnyIdeConsoleInput()
 //
 void TestSdOperation()
 {
+  File myile;
   // Open the file.
-  myFile = SD.open("test.txt", FILE_WRITE);
+  myile = SD.open("test.txt", FILE_WRITE);
   // Perform the tests using the File object and a
   // pointer to the File object.
   File *myFilePtr;  
-  myFilePtr = &myFile;
+  myFilePtr = &myile;
   // if the file opened okay, write to it:
   if (*myFilePtr) {
     Serial.print("#1 Writing to test.txt...");
@@ -291,7 +443,7 @@ void TestSdOperation()
   // re-open the file for reading:
   // You can use the File object itself or you can use
   // a pointer to the file object.
-  myFile = SD.open("test.txt");  
+  myile = SD.open("test.txt");  
    
   // Using the File object pointer:
   if(*myFilePtr)
@@ -312,32 +464,32 @@ void TestSdOperation()
   }
 
 // Using the object itself. 
-   myFile = SD.open("test.txt", FILE_WRITE);
+   myile = SD.open("test.txt", FILE_WRITE);
 
   // if the file opened okay, write to it:
-  if (myFile) {
+  if (myile) {
     Serial.print("#2 Writing to test.txt...");
-    myFile.println("testing 1, 2, 3.\n");
-    myFile.println("testing 4, 5, 6.\n");
+    myile.println("testing 1, 2, 3.\n");
+    myile.println("testing 4, 5, 6.\n");
 	// close the file:
-    myFile.close();
+    myile.close();
     Serial.println("#2 Done writting to the test file second time.");
   } else {
     // if the file didn't open, print an error:
     Serial.println("#2 error opening test.txt");
   }
 
-  myFile = SD.open("test.txt");
+  myile = SD.open("test.txt");
 
-  if (myFile) {
+  if (myile) {
     Serial.println("#2 test.txt opened for reading:");
     
     // read from the file until there's nothing else in it:
-    while (myFile.available()) 
-    	Serial.write(myFile.read());
+    while (myile.available()) 
+    	Serial.write(myile.read());
     SD.remove("test.txt");
     // close the file:
-    myFile.close();
+    myile.close();
   } else {
   	// if the file didn't open, print an error:
     Serial.println("#2 error opening test.txt for reading.");
@@ -376,12 +528,6 @@ void TestSdOperation()
     Serial.print(solarOut_A0 , DEC);
    Serial.print(") ");
   
-    Serial.print(" Battery = ");
-    Serial.print(batteryVolts , DEC);
-    Serial.print("(");
-    Serial.print(battery_A1 , DEC);
-    Serial.print(") ");
-  
     Serial.print(" Regulator = ");
     Serial.print(regulatorVolts , DEC);
     Serial.print("(");
@@ -392,7 +538,14 @@ void TestSdOperation()
     Serial.print(loadVolts , DEC);
     Serial.print("(");
     Serial.print(load_A3 , DEC);
-    Serial.println(")");
+    Serial.print(")");
+    
+    Serial.print(" Battery = ");
+    Serial.print(batteryVolts , DEC);
+    Serial.print("(");
+    Serial.print(battery_A1 , DEC);
+    Serial.println(") ");
+  
   }
   
         
@@ -405,6 +558,7 @@ void consoleExit()
   tasksState[CONSOLE_TASK] = TASK_INIT_STATE;
   tasksState[MONITOR_TASK] = MONITOR_SLEEP;
   keepAwakeFlags &= (!(1<<CONSOLE_TASK));
+  consoleInput = false;
   attachInterrupt(EXT_INTERRUPT_1, AnyIdeConsoleInput, LOW);
   // Give the output to the IDE Console time to flush.
    delay(300);
@@ -418,4 +572,64 @@ void consoleExit()
   }
 }
 
+
+// Tasks requiring a time out unique to the task use a "uniqued"
+// version of Ben's monitor timeout methods, monitorSetTimeout() &
+// monitorTimeout(), i.e. change monitor to the task's unique
+// name.
+void cnslSetTimeout( unsigned long t)
+{
+ cnslTimeoutPeriod = t;
+ cnslPreviousMillis = millis();
+}
+boolean cnslTimeout() 
+{
+  unsigned long elapsedTime;
+  unsigned long currentMillis = millis();  
+  //check if time has rolled over
+  if ( currentMillis < cnslPreviousMillis)
+  {
+    elapsedTime = 
+      MAX_UNSIGNED_LONG - cnslPreviousMillis + currentMillis;
+    if (elapsedTime >= cnslTimeoutPeriod)
+      return 1; //timeout period has been reached
+    else
+      return 0; //timeout period has not been reached
+  }
+  //time has not rolled over, simply compute elaspedTime
+  else
+  {
+    elapsedTime = currentMillis - cnslPreviousMillis;
+
+    if (elapsedTime >= cnslTimeoutPeriod)
+      return true; //timeout period has been reached
+    else
+      return false; //timeout period has not been reached
+  }
+}
+ 
+//          Serial.println("gsrpResponseCount = ");
+//          Serial.println(gsrpResponseCount, DEC);
+//          Serial.println("gprsCharInCount = ");
+//          Serial.println(gprsCharInCount, DEC);
+//          Serial.println("gprsResponses = ");
+//          Serial.println(gprsResponses);
+//          Serial.println("gprsConfigureStep = ");
+//          Serial.println(gprsConfigureStep, DEC);
+//          Serial.println("gsrpCmdLength = ");
+//          Serial.println(gsrpCmdLength, DEC);
+//          Serial.println("gprsModemOutParseState = ");
+//          Serial.println(gprsModemOutParseState, DEC);
+//          Serial.println("gprsModemOutputCount = ");
+//          Serial.println(gprsModemOutputCount, DEC);
+//          Serial.println("gprsAtResponseCount = ");
+//          Serial.println(gprsAtResponseCount, DEC);
+//          Serial.println("gprsOtherResponseCount = ");
+//          Serial.println(gprsOtherResponseCount, DEC);
+//          Serial.println("gprsTextCount = ");
+//          Serial.println(gprsTextCount, DEC);
+//          Serial.println("gprsValidTextCount = ");
+//          Serial.println(gprsValidTextCount, DEC);
+//          Serial.println("gprsErrorCount = ");
+//          Serial.println(gprsErrorCount, DEC);
 

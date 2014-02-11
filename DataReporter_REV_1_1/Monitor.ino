@@ -115,14 +115,16 @@ void MonitorTask(void)
         //      it will only set the flag anyway.
 //*******************BEGIN DIAGNOSTIC CODE**************************
 //*******************BEGIN DIAGNOSTIC CODE**************************
-        Serial.print("Wakeup ");
-        if(bucketTipped)
-          Serial.println("from Bucket");
-        else if(consoleInput)
-          Serial.println("from Console");
-        else
-          Serial.println("from Watchdog");          
-        delay(300);      
+         digitalWrite(13, HIGH);
+//        Serial.print("Wakeup ");
+//        if(bucketTipped)
+//          Serial.println("from Bucket");
+//        else if(consoleInput)
+//          Serial.println("from Console");
+//        else
+//          Serial.println("from Watchdog");          
+        delay(50);  
+        digitalWrite(13, LOW);    
 //********************END DIAGNOSTIC CODE***************************
 //********************END DIAGNOSTIC CODE***************************      
         // Up date the minutes since the last report was made.

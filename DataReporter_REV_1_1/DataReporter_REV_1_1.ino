@@ -9,7 +9,7 @@
 // All hardware and software initialization if done in the 
 // SetupYask().
 #include "Definitions.h"
-
+#include "GprsOperation.h"
 //*******************BEGIN DIAGNOSTIC CODE**************************
 //*******************BEGIN DIAGNOSTIC CODE**************************
 

@@ -32,7 +32,7 @@
 //******************************************************
 // ***************MESSAGE _TABLE************************
 prog_char setupString_0[] PROGMEM = "A test message.\0";
-//prog_char setupString_1[] PROGMEM = "Setup task\0";
+prog_char setupString_1[] PROGMEM = "GPRS Registration Error.\0";
 //prog_char setupString_2[] PROGMEM = "Relay Parameter err\0";
 //prog_char setupString_3[] PROGMEM = "Relay operate failed\0";
 //prog_char setupString_4[] PROGMEM = "Relay state error\0";
@@ -52,8 +52,8 @@ prog_char setupString_0[] PROGMEM = "A test message.\0";
 // memory.
 PROGMEM const char *sysLogPointers[] =
 {   
-  setupString_0
-    //  setupString_1,
+  setupString_0,
+  setupString_1
   //  setupString_2,
   //  setupString_3,
   //  setupString_4,

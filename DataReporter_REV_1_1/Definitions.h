@@ -20,8 +20,10 @@
 #define CONSOLE_TASK          4
 #define RTC_TASK              5
 #define SDRW_TASK             6
-#define TEMPLATE_TASK         7
-#define MAX_TASKS             8
+#define GPRS_TASK             7
+#define MDMSIM_TASK           8
+#define TEMPLATE_TASK         9
+#define MAX_TASKS             10
 
 //All tasks must have an initial state "case TASK_INIT_STATE
 #define TASK_INIT_STATE    0  
@@ -58,7 +60,7 @@ extern bool sdBusy;
 // End of common global references.
 
 // Arduino Mega Pro (AtMega2560) I/O Port Pin assignments
-#define SOLAR_REG_ENABLE  10          // Active high.
+#define SOLAR_REG_ENABLE          10          // Active high.
 // The PG output is low whenever the input to the 
 // Battery Manager (MCP73871) device is above the UVLO
 // threshold and greater than the battery voltage. See
@@ -69,9 +71,9 @@ extern bool sdBusy;
 // See Table 5-1 Pg. 25 in MCP73871 data sheet.
 #define BATTERY_MNGR_STAT1_LBO    7  // Input with pullup resistor.
 
-#define SD_PWR_ENABLE 6            // Active HIGH.
-#define SD_SPI_SELECT 5             // Active low.
-#define RTC_SPI_SELECT 4           // Active low.
+#define SD_PWR_ENABLE             6            // Active HIGH.
+#define SD_SPI_SELECT             5             // Active low.
+#define RTC_SPI_SELECT            4           // Active low.
 
 // End of Arduino Mega Pro I/O Port Pin assignments
 
@@ -93,22 +95,6 @@ extern bool sdBusy;
 //
 //// End of Arduino Mega Pro I/O Port Pin assignments
 
-// The following define the Arduino Mega Pro (AtMega2560) A/D
-// channel assignments for voltages monitored by the DataReporter.
-#define SOLAR_OUTPUT_MONITOR  0
-#define BATTERY_MONITOR  1
-#define RFEGULATOR_MONITOR  2
-#define LOAD_MONITOR  3
-// The following define the scale factors to convert the 10 bit
-// A/D readings to floating point voltages.
-// Monitored voltages are first scaled to 0 to 2.5 with resistor
-// dividers.
-#define  SOLAR_SF  0.028758950            // 47K to 4.7K
-#define  BATTERY_SF  0.004181460     // 6.8K to 4.7K
-#define  REGULATOR_SF  0.006257822   // 6.8K to 4.7K
-#define  LOAD_SF  0.006144431       // 6.8K to 4.7K
-
-// End of A/D channel assignments.
 
 // The ATmega2560 External Interrupt 4, Port E Pin 4 is wired
 // to the Sparkfun Mega Pro board's pin marked PWM 2.This is 
@@ -126,7 +112,7 @@ extern bool sdBusy;
 // interrupts and wakes up the 2560 any time that the signal
 // is low. These definitions make this connection.
 #define EXT_INTERRUPT_1  1
-#define DIGITAL_PIN_3  3
+#define DIGITAL_PIN_3    3
 
 // BUCKET_SWITCH_DELAY the minimum number of watchdog 
 // timeout periods must occur, after the begining of 
@@ -218,7 +204,7 @@ extern bool sdBusy;
 #define RTC_MONTH_ADDR      5
 #define RTC_YEAR_ADDR       6
 
-#define MAX_UNSIGNED_LONG 0xFFFFFFFF;
+#define MAX_UNSIGNED_LONG 0xFFFFFFFF
 
 
   // The following define the index into the System log message
@@ -227,4 +213,33 @@ extern bool sdBusy;
 
   //***************SYSTEM_LOG_MESSAGES*************************
   #define CNSL_TEST_MSG         0
+  #define GPRS_REGISTER_MSG     1
+//
+// GprsControl task communication and control stuff.
+//
+#define GPRS_REGISTER_COMMANDS 14
+#define GPRS_M10_PWRKEY 7
+
+//
+// Definitions associated with the analog signal monitoring.
+//
+#define ANALOG_NO_OF_CHANNELS      4
+
+
+// The following define the Arduino Mega Pro (AtMega2560) A/D
+// channel assignments for voltages monitored by the DataReporter.
+#define SOLAR_OUTPUT_MONITOR  0
+#define BATTERY_MONITOR  1
+#define RFEGULATOR_MONITOR  2
+#define LOAD_MONITOR  3
+// The following define the scale factors to convert the 10 bit
+// A/D readings to floating point voltages.
+// Monitored voltages are first scaled to 0 to 2.5 with resistor
+// dividers.
+#define  SOLAR_SF  0.028758950            // 47K to 4.7K
+#define  BATTERY_SF  0.004181460     // 6.8K to 4.7K
+#define  REGULATOR_SF  0.006257822   // 6.8K to 4.7K
+#define  LOAD_SF  0.006144431       // 6.8K to 4.7K
+
+// End of A/D channel assignments.
 

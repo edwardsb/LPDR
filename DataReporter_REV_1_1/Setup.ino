@@ -32,6 +32,10 @@ void SetupTask(void)
 //*******************BEGIN DIAGNOSTIC CODE**************************
 //*******************BEGIN DIAGNOSTIC CODE**************************
   digitalWrite(SOLAR_REG_ENABLE, LOW);
+  
+  // Blink the yellow LED on the Sparkfun Mega Pro 3.3 board.
+    pinMode(13, OUTPUT);
+    digitalWrite(13, LOW);
 //********************END DIAGNOSTIC CODE***************************
 //********************END DIAGNOSTIC CODE***************************
 
@@ -105,21 +109,35 @@ void SetupTask(void)
   taskScheduled[SDRW_TASK] = false;
   tasksState[SDRW_TASK] = TASK_INIT_STATE;
   
-    // If you add a new task initialize the following
+  // If you add a new task initialize the following
   // global variab les for it here.
   taskPointers[MONITOR_TASK] = MonitorTask;
   taskScheduled[MONITOR_TASK] = false;
   tasksState[MONITOR_TASK] = TASK_INIT_STATE;
+  
+  // If you add a new task initialize the following
+  // global variab les for it here.
+  taskPointers[GPRS_TASK] = GprsConnect;
+  taskScheduled[GPRS_TASK] = false;
+  tasksState[GPRS_TASK] = TASK_INIT_STATE;
 
   // If you add a new task initialize the following
   // global variab les for it here.
   taskPointers[CONSOLE_TASK] = ConsoleTask;
   taskScheduled[CONSOLE_TASK] = false;
   tasksState[CONSOLE_TASK] = TASK_INIT_STATE;
+  
+  // If you add a new task initialize the following
+  // global variab les for it here.
+  taskPointers[MDMSIM_TASK] = ModemSimulation;
+  taskScheduled[MDMSIM_TASK] = false;
+  tasksState[MDMSIM_TASK] = TASK_INIT_STATE;
 
   // Show the Monitor task that all tasks indicate that the
   // Processor may be put to sleep.
-    keepAwakeFlags = 0;
+  keepAwakeFlags = 0;
+  // Assign the GSM modem's PWRKEY control to a Digital I/O pin.
+  pinMode(GPRS_M10_PWRKEY, OUTPUT);
   // Schedule the Monitor task. The Monitor task is always running.
     taskScheduled[MONITOR_TASK] = true;
 
