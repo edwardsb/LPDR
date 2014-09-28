@@ -3,6 +3,13 @@
   for the resources shared by the various tasks of the
   LpcsDataMngr sketch. 
   
+  There are 5 shared resource queus:
+	1.	RTC QUEUE
+	2.	SYSTEM LOG QUEUE
+	3.	SD READ WRITE QUEUE
+	4.	GPRS OPERATIONS QUEUE
+	5.	DATA LOG QUEUE
+
   The queues are mechanized using an array of control
   structures, e.g. 
      relayControl relayQueue[QUEUE_MAX_ITEMS];
@@ -27,6 +34,7 @@
 #include "SysLog.h"
 #include "SdReadWrite.h"
 #include "GprsOperation.h"
+#include "DataLog.h"
 
 #define QUEUE_MAX_ITEMS      5
 #define QUEUE_EMPTY    0
@@ -634,6 +642,152 @@ struct gprsControl *PopGprs()
   return(popGprsStatus);
 }
 
+//**********************************************************************************
+//**********************************************************************************
+//
+//                  DATA LOGGING QUEUE
+//
+//**********************************************************************************
+//**********************************************************************************
+ // Shared resource control queue variables.
+dataLogControl *dataLogQueue[QUEUE_MAX_ITEMS];
+int dataLogQueueCount = 0;
+int dataLogQueueInIdx = 0;
+int dataLogQueueOutIdx = 0;
 
+ //
+// The following PushDataLog() and PopDataLog() functions mechanize
+// first-in-first-out stack for queueing requests for the
+// indicated shared resource. The interrupts must be off (cli)
+// prior to placing a shared resource request on the queue.
+void PushDataLog(struct dataLogControl *controlPtr)  // Requireing struct is Arduino issue.
+{
+  //
+  // The conditions of the Queue may be :
+  //   1.  The Queue may be empty.
+  //       A.  dataLogQueueInIdx = dataLogQueueOutIdx.
+  //       B.  dataLogQueueCount = 0.
+  //   2.  The Queue may not be empty.
+  //       A.  dataLogQueueInIdx <> dataLogQueueOutIdx.
+  //       B.  dataLogQueueCount <> 0
+  //   3.  The Queue may be full.
+  //       A.  dataLogQueueInIdx = dataLogQueueOutIdx.
+  //       B.  dataLogQueueCount <> 0.
+  //
+  // In any case the new shared resource control structure
+  // pointer gets inserted into the FIFO. If it's full then
+  // then the shared resource request is lost.
+  dataLogQueue[dataLogQueueInIdx] = controlPtr;   
+  // Examine each case above and set the indexes accordingly.
+  if(dataLogQueueInIdx == dataLogQueueOutIdx)
+  {
+    //
+    // The In Index = the Out Index. The FIFO is full or empty.
+    //
+    if(dataLogQueueCount == 0)
+    {
+      //
+      // The FIFO is empty. Advance the in index only.
+      //
+      dataLogQueueInIdx++;
+      dataLogQueueInIdx%=QUEUE_MAX_ITEMS;
+      dataLogQueueCount++;
+    }
+    else
+    {
+      //
+      // The FIFO is full. Advance the in and out indexs. Do not
+      // increment the count.
+      //
+      dataLogQueueInIdx++;
+      dataLogQueueInIdx%=QUEUE_MAX_ITEMS;
+      dataLogQueueOutIdx++;
+      dataLogQueueOutIdx%=QUEUE_MAX_ITEMS;
+      //
+      // Let the caller know that the FIFO is full and the request
+      // is lost.
+      controlPtr->stat = FAIL;
+    }
+  }
+  else
+  {
+    //
+    // The FIFO is not empty or full. Advance the in index
+    // and advance the count.
+    //
+    dataLogQueueInIdx++;
+   // dataLogQueueInIdx%=QUEUE_MAX_ITEMS;
+    dataLogQueueCount++;
+  }
+  // If the queue is not empty and the RTC task is not 
+  // scheduled then schedule the RTC task.
+  if(dataLogQueueCount != 0 && !taskScheduled[RTC_TASK])
+  {
+    tasksState[RTC_TASK] = TASK_INIT_STATE; 
+    taskScheduled[RTC_TASK] = true;
+  }  
+}
+
+//
+// This function returns a pointer to the next shared
+// resource control structure from the queue, if there
+// are any items in the queue, else QUEUE_EMPTY if the queue is empty.
+//
+struct dataLogControl *PopDataLog()
+{
+  dataLogControl *popDataLogStatus;
+  //
+  // The conditions here are:
+  //   1.  The FIFO may be empty.
+  //       A.  Return False.
+  //   2.  The FIFO may not be empty.
+  //       A.  InIndex <> OutIndex.
+  //       B.  Count <> 0
+  //   3.  The FIFO may be full.
+  //       A.  InIndex = OutIndex.
+  //       B.  Count <> 0.
+  //
+  if( dataLogQueueCount != 0)
+  {
+    //
+    // The FIFO is not empty return an index to the command
+    // control structure removed.
+    //
+    popDataLogStatus = dataLogQueue[dataLogQueueOutIdx];
+    if(dataLogQueueInIdx == dataLogQueueOutIdx)
+    {
+      //
+      // The In Index = the Out Index. The FIFO is full 
+      // and we have removed one entry. Advance the out
+      // index only.
+      //
+      dataLogQueueOutIdx++;
+      dataLogQueueOutIdx%=QUEUE_MAX_ITEMS;
+    }
+    else
+    {
+        //
+        // The FIFO is not empty and not full.
+        //
+        dataLogQueueOutIdx++;
+        dataLogQueueOutIdx%=QUEUE_MAX_ITEMS;
+    }
+    //
+    // Decrement the number of data points in the FIFO.
+    //
+     dataLogQueueCount--;
+  }
+  else
+  {
+  //
+  // The FIFO is empty and we return empty.
+  //
+   popDataLogStatus = (dataLogControl*)QUEUE_EMPTY;
+  }
+  Serial.print("PopDataLog() returning = ");
+  Serial.println((unsigned long)popDataLogStatus, HEX);
+   delay(300);
+  return(popDataLogStatus);
+}
 
 

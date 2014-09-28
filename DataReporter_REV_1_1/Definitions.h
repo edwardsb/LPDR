@@ -60,6 +60,21 @@ extern bool sdBusy;
 // End of common global references.
 
 // Arduino Mega Pro (AtMega2560) I/O Port Pin assignments
+// XBEE_POWER_ENABLE is tied to the SEL1 and SEL2 of the
+// 3.3 VDC 250 mA Boost-Buck LTC3245 regulator. This
+// regulator supplies the XBee coordinator with power. It 
+// initialized to the low state in Setup.
+#define XBEE_POWER_ENABLE         12          // Active high
+// XBEE_POWER_GOOD indicates if the XBee's power is within 6%
+// of is't final nominal value of 3.3 DC. The signal goes to
+// the open state to indicate. XBEE_POWER_GOOD is initialized
+// as an input with no pullup in Setup.
+#define XBEE_POWER_GOOD           6
+// XBEE_RESET_NOT is tied directly to the XBee coordinator's
+// RESET line. It is initialized in Setup to the high
+// inactive state.
+#define XBEE_RESET_NOT             11          // Active low.
+
 #define SOLAR_REG_ENABLE          10          // Active high.
 // The PG output is low whenever the input to the 
 // Battery Manager (MCP73871) device is above the UVLO
@@ -72,8 +87,8 @@ extern bool sdBusy;
 #define BATTERY_MNGR_STAT1_LBO    7  // Input with pullup resistor.
 
 #define SD_PWR_ENABLE             6            // Active HIGH.
-#define SD_SPI_SELECT             5             // Active low.
-#define RTC_SPI_SELECT            4           // Active low.
+#define SD_SPI_SELECT             5            // Active low.
+#define RTC_SPI_SELECT            4            // Active low.
 
 // End of Arduino Mega Pro I/O Port Pin assignments
 
@@ -237,7 +252,7 @@ extern bool sdBusy;
 // Monitored voltages are first scaled to 0 to 2.5 with resistor
 // dividers.
 #define  SOLAR_SF  0.028758950            // 47K to 4.7K
-#define  BATTERY_SF  0.004181460     // 6.8K to 4.7K
+#define  BATTERY_SF  0.004174085     // 6.8K to 4.7K
 #define  REGULATOR_SF  0.006257822   // 6.8K to 4.7K
 #define  LOAD_SF  0.006144431       // 6.8K to 4.7K
 

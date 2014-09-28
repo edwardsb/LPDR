@@ -136,7 +136,7 @@ void MonitorTask(void)
         {
           // The rain bucket's interrupt woke us up.
           sei();
-          // Indicate that the DataLogger() tassk should delay past
+          // Indicate that the DataLogger() task should delay past
           // any switch bounce or momentary closure.
           switchDelay = BUCKET_SWITCH_DELAY;
           // Schedule the DataLogger() task to record the datapoint.

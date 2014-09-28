@@ -32,6 +32,6 @@
        rtcData data;
     };
     // Date time format: mm-dd-yy hh:mi:ss
-    #define DATE_TIME_LENGTH    (17 
+    #define DATE_TIME_LENGTH    17 
 #endif
 

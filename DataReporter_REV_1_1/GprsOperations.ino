@@ -244,7 +244,7 @@ unsigned long gprsPreviousMillis;
 
 
 // Enter here only from the exec.
-void GprsConnect(void)      
+void GprsOperations(void)      
 {  
   // Enter here from the executive after being scheduled
   // by some client wanting to use the GSM modem to access
@@ -639,7 +639,7 @@ void GprsConnect(void)
       
       break;
   }
-}  // End of void GprsConnect(void)
+}  // End of void GprsOperations(void)
 
 //
 // Prepare to receive a response from the modem.
@@ -676,9 +676,9 @@ boolean gprsTimeout()
   {
     elapsedTime = MAX_UNSIGNED_LONG - gprsPreviousMillis + currentMillis;
     if (elapsedTime >= gprsTimeoutPeriod)
-      return 1; //timeout period has been reached
+      return true; //timeout period has been reached
     else
-      return 0; //timeout period has not been reached
+      return false; //timeout period has not been reached
   }
   //time has not rolled over, simply compute elaspedTime
   else

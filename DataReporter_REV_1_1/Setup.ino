@@ -19,7 +19,9 @@ void SetupTask(void)
 
   // Digital I/O SOLAR_REG_ENABLE is connected to Pin 4 (Vdisable
   // input) of the KA278 Solar Voltage Regulator and controls the
-  // output of the regulator. A voltage > 1.4V (or open) on Pin4
+  // output of the regulator. Vdisable is pulled to the solar
+  // output voltage through a 5.1K resistor so that the regulator
+  // output is normally enabled. A voltage > 1.4V (or open) on Pin4
   // enables the egulator and charges the battery when the solar
   // pannel is sufficiently illuminated..  The Reset/default state
   // of the Digital I/O SOLAR_REG_ENABLE is INPUT and the Regulator
@@ -27,18 +29,29 @@ void SetupTask(void)
   // state of the bit controlling the state Digital I/O 
   // SOLAR_REG_ENABLE is low therefore setit HIGH prior to eanabling
   // Digital I/O SOLAR_REG_ENABLE as an OUTPUT.
+  //
+  // Turn on enabeled.
   digitalWrite(SOLAR_REG_ENABLE, HIGH);
   pinMode(SOLAR_REG_ENABLE, OUTPUT);
 //*******************BEGIN DIAGNOSTIC CODE**************************
 //*******************BEGIN DIAGNOSTIC CODE**************************
-  digitalWrite(SOLAR_REG_ENABLE, LOW);
+  //digitalWrite(SOLAR_REG_ENABLE, LOW);
   
   // Blink the yellow LED on the Sparkfun Mega Pro 3.3 board.
     pinMode(13, OUTPUT);
     digitalWrite(13, LOW);
 //********************END DIAGNOSTIC CODE***************************
 //********************END DIAGNOSTIC CODE***************************
-
+  // Initialize the XBee coordinator's RESET pin to the inactive state.
+  digitalWrite(XBEE_RESET_NOT, HIGH);
+  pinMode(XBEE_RESET_NOT, OUTPUT);
+  // to the shutdown state. XBEE_POWER_ENABLE is tied to the regulator's
+  // SEL1 & SEL2 lines. The SEL pins are pulled LOW through a 510K
+  // resistor holding the regulator output in the shutdown state.
+  digitalWrite(XBEE_POWER_ENABLE, LOW);
+  pinMode(XBEE_POWER_ENABLE, OUTPUT);
+  // Initialize the XBee's power good indicaor.
+  pinMode(XBEE_POWER_GOOD, INPUT);  // No pullup.
   // The Digital I/O's, BATTERY_MNGR_PGNOT, BATTERY_MNGR_STAT2
   // and BATTERY_MNGR_STAT1_LBO are all programmed as inputs
   // with PULLUP's and monitor the state of the Battery Manager's
@@ -74,6 +87,9 @@ void SetupTask(void)
   digitalWrite(SD_PWR_ENABLE, HIGH);
   pinMode(SD_PWR_ENABLE, OUTPUT);
   digitalWrite(SD_PWR_ENABLE, HIGH);
+
+   // Assign the GSM modem's PWRKEY control to a Digital I/O pin.
+  pinMode(GPRS_M10_PWRKEY, OUTPUT);
 
   // Clear all of the task's schedule flags to not scheduled
   // set the entry state to the initial state.
@@ -117,7 +133,7 @@ void SetupTask(void)
   
   // If you add a new task initialize the following
   // global variab les for it here.
-  taskPointers[GPRS_TASK] = GprsConnect;
+  taskPointers[GPRS_TASK] = GprsOperations;
   taskScheduled[GPRS_TASK] = false;
   tasksState[GPRS_TASK] = TASK_INIT_STATE;
 
@@ -136,8 +152,6 @@ void SetupTask(void)
   // Show the Monitor task that all tasks indicate that the
   // Processor may be put to sleep.
   keepAwakeFlags = 0;
-  // Assign the GSM modem's PWRKEY control to a Digital I/O pin.
-  pinMode(GPRS_M10_PWRKEY, OUTPUT);
   // Schedule the Monitor task. The Monitor task is always running.
     taskScheduled[MONITOR_TASK] = true;
 

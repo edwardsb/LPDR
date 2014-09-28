@@ -14,4 +14,46 @@
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="DataReporter_REV_1_1.ino" />
+    <None Include="Console.ino" />
+    <None Include="Global.ino" />
+    <None Include="GprsOperations.ino" />
+    <None Include="ModemSimulation.ino" />
+    <None Include="Monitor.ino" />
+    <None Include="ReportData.ino" />
+    <None Include="ResourceQueues.ino" />
+    <None Include="Rtc.ino" />
+    <None Include="SdReadWrite.ino" />
+    <None Include="Setup.ino" />
+    <None Include="SystemLogTask.ino" />
+    <None Include="TaskTemplate.ino" />
+    <None Include="DataLog.ino" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Visual Micro\.DataReporter_REV_1_1.vsarduino.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Definitions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GprsOperation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ModemSim.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Rtc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SdReadWrite.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SysLog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DataLog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>

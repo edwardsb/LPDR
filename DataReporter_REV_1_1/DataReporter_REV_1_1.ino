@@ -6,8 +6,8 @@
 //    Monitor
 //    LogData
 //    ReportData
-// All hardware and software initialization if done in the 
-// SetupYask().
+// All hardware and software initialization is done in the 
+// SetupTask().
 #include "Definitions.h"
 #include "GprsOperation.h"
 //*******************BEGIN DIAGNOSTIC CODE**************************
@@ -25,7 +25,6 @@ float regulatorVolts;                 // 5 VDC regulator output voltage.
 float loadVolts;                 // 5 VDC regulator output voltage.
 //********************END DIAGNOSTIC CODE***************************
 //********************END DIAGNOSTIC CODE***************************
-
 void setup() 
 {
   // VERY IMPORTANT:

@@ -44,6 +44,10 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>C:\Users\Bob\Documents\Arduino\hardware\mega-pro-3.3V\cores\arduino;C:\Users\Bob\Documents\Arduino\hardware\mega-pro-3.3V\variants\mega;C:\Program Files (x86)\Arduino\libraries\SPI;C:\Program Files (x86)\Arduino\libraries\SPI\utility;C:\Program Files (x86)\Arduino\libraries\SD;C:\Program Files (x86)\Arduino\libraries\SD\utility;C:\Program Files (x86)\Arduino\libraries\Wire;C:\Program Files (x86)\Arduino\libraries\Wire\utility;C:\Program Files (x86)\Arduino\libraries;C:\Users\Bob\Documents\Arduino\hardware\mega-pro-3.3V\libraries;C:\Program Files (x86)\Visual Micro\Visual Micro for Arduino\Micro Platforms\default\debuggers;C:\Users\Bob\Documents\Arduino\libraries;c:\program files (x86)\arduino\hardware\tools\avr\avr\include\;c:\program files (x86)\arduino\hardware\tools\avr\avr\include\avr\;c:\program files (x86)\arduino\hardware\tools\avr\avr\;c:\program files (x86)\arduino\hardware\tools\avr\lib\gcc\avr\4.3.2\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ForcedIncludeFiles>C:\Users\Bob\Documents\GitHub\LPDR\DataReporter_REV_1_1\Visual Micro\.DataReporter_REV_1_1.vsarduino.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <IgnoreStandardIncludePath>true</IgnoreStandardIncludePath>
+      <PreprocessorDefinitions>__AVR_ATmega2560__;ARDUINO=105;ARDUINO_MAIN;__AVR__;__avr__;F_CPU=8000000L;__cplusplus;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -64,6 +68,72 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="Console.ino">
+      <FileType>CppCode</FileType>
+    </None>
+    <None Include="DataReporter_REV_1_1.ino">
+      <FileType>CppCode</FileType>
+    </None>
+    <None Include="Global.ino">
+      <FileType>CppCode</FileType>
+    </None>
+    <None Include="GprsOperations.ino">
+      <FileType>CppCode</FileType>
+    </None>
+    <None Include="DataLog.ino">
+      <FileType>CppCode</FileType>
+    </None>
+    <None Include="ModemSimulation.ino">
+      <FileType>CppCode</FileType>
+    </None>
+    <None Include="Monitor.ino">
+      <FileType>CppCode</FileType>
+    </None>
+    <None Include="ReportData.ino">
+      <FileType>CppCode</FileType>
+    </None>
+    <None Include="ResourceQueues.ino">
+      <FileType>CppCode</FileType>
+    </None>
+    <None Include="Rtc.ino">
+      <FileType>CppCode</FileType>
+    </None>
+    <None Include="SdReadWrite.ino">
+      <FileType>CppCode</FileType>
+    </None>
+    <None Include="Setup.ino">
+      <FileType>CppCode</FileType>
+    </None>
+    <None Include="SystemLogTask.ino">
+      <FileType>CppCode</FileType>
+    </None>
+    <None Include="TaskTemplate.ino">
+      <FileType>CppCode</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="DataLog.h">
+      <FileType>CppCode</FileType>
+    </ClInclude>
+    <ClInclude Include="Definitions.h">
+      <FileType>CppCode</FileType>
+    </ClInclude>
+    <ClInclude Include="GprsOperation.h">
+      <FileType>CppCode</FileType>
+    </ClInclude>
+    <ClInclude Include="ModemSim.h">
+      <FileType>CppCode</FileType>
+    </ClInclude>
+    <ClInclude Include="Rtc.h">
+      <FileType>CppCode</FileType>
+    </ClInclude>
+    <ClInclude Include="SdReadWrite.h">
+      <FileType>CppCode</FileType>
+    </ClInclude>
+    <ClInclude Include="SysLog.h">
+      <FileType>CppCode</FileType>
+    </ClInclude>
+    <ClInclude Include="Visual Micro\.DataReporter_REV_1_1.vsarduino.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

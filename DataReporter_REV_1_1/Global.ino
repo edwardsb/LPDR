@@ -8,7 +8,6 @@
   
 
 // Variables associated with the system log queue.
-//***********END OFHARED RESOURCES COMMUNICATION AND CONTROL***********
 
 // Scheduler variables.
 taskPointer taskPointers[MAX_TASKS];
@@ -77,20 +76,6 @@ char *sysLogFileName = SYS_LOG_FILE;// System Log variables.
 
 
 
-// Variables associated with the Data Logging queue.
-// Data Logging operation control structure.
-struct dataLogControl
-{ 
-  int idx;      // Index into dataLogQueue[] array
-  int type;
-  String timeStamp;   // mm-dd-yy hh:mm:ss
-  String value;      // Float or integer
-};
-dataLogControl dataLogQueue[QUEUE_MAX_ITEMS];
-int dataLogQueueCount = 0;
-int dataLogQueueInIdx = 0;
-int dataLogQueueOutIdx = 0;
-// End of variables associated with the system log queue.
 
 
 

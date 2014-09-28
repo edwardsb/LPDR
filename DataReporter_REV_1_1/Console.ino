@@ -1,19 +1,41 @@
 //
-// The Arduino IDE console task provides a means of controling
-// the testing of the DataReporter.
+// Console task provides a means of testing of the DataReporter.
+// The Console task is scheduled only if a character is received
+// from the Arduino IDE Serial Monitor.
+// The Monitor task is scheduled at all times and always sleeps
+// until woken up by the Watchdog (8 seconds) or an input from the
+// IDE's Serial Console.
+// When woken up by the IDE interrupt the following is executed
+// by the Monitor task:
+//          keepAwakeFlags |= (1<<CONSOLE_TASK);
+//          consoleInput = false;
+//          taskScheduled[CONSOLE_TASK] = true;
+// and this task is scheduled. As long as the keepAwakeFlags is non
+// zero the Monitor task will not sleep and this Console task
+// remains scheduled. 
+// When the Console task is completed it must reset it's flag bit
+// in keepAwakeFlags, reattach the interrupt (See consoleExit()
+// and deschedule itself.
 //
-
+// This task looks for one of the following commands from the console:
+//
+//        R = Set RTC
+//        S = Enter a test message in the system log.
+//        s = Enable Solar regulator.
+//        x = Disable Solar regulator.
+//        t = Test SD read- write.
+//        M = Make analog measrements.
+//
 #include "Definitions.h"
 #include "Rtc.h"
 #include "SysLog.h"
 #include <SPI.h>
 #include <SD.h>
-#include <gprsOperation.h>
+#include "GprsOperation.h"
 #include <String.h>
 
 extern boolean consoleInput;
 extern int keepAwakeFlags;
-extern boolean monitorTimeout();
 extern void monitorSetTimeout( unsigned long t);
 extern rtcControl cnslRtcControl;
 
@@ -58,98 +80,95 @@ void ConsoleTask(void)
   {
     case TASK_INIT_STATE:
        
-    if(Serial.available() != 0)  // check for serial data
-    {
-      switch(Serial.read())      // see which command we received
-      {
-        //*********************************************
-        //*********************************************
-        case 'R':
-          Serial.println("Set RTC.");
-          // Let Monitor know not to sleep until we finish
-          // setting the clock.
-          keepAwakeFlags |= (1<<CONSOLE_TASK);
-          // Schedule the console task to get the arguments 
-          // for setting the RTC from the IDE Serial Console
-          // input.
-          tasksState[CONSOLE_TASK] = CNSL_GET_RTC_ARGS;
-          // Let op know what the input format for setting the
-          // RTC.
-          Serial.println("Input the 12 digit RTC time as mmddyyhhnnss");
-          // Initialize the timeout time.
-          monitorSetTimeout(CNSL_RTC_INPUT_WAIT);
-          // Clear the input string buffer.
-          rtcSetString = "";
-        break;        
-        //*********************************************
-        //*********************************************
-        case 'S':
-          Serial.println("Entering a test message into the System Log.");
+		if(Serial.available() != 0)  // check for serial data
+		{
+		  switch(Serial.read())      // see which command we received
+		  {
+			//*********************************************
+			//*********************************************
+			case 'R':
+			  Serial.println("Set RTC.");
+			  // Let Monitor know not to sleep until we finish
+			  // setting the clock.
+			  keepAwakeFlags |= (1<<CONSOLE_TASK);
+			  // Schedule the console task to get the arguments 
+			  // for setting the RTC from the IDE Serial Console
+			  // input.
+			  tasksState[CONSOLE_TASK] = CNSL_GET_RTC_ARGS;
+			  // Let op know what the input format for setting the
+			  // RTC.
+			  Serial.println("Input the 12 digit RTC time as mmddyyhhnnss");
+			  // Initialize the timeout time.
+			  monitorSetTimeout(CNSL_RTC_INPUT_WAIT);
+			  // Clear the input string buffer.
+			  rtcSetString = "";
+			break;        
+			//*********************************************
+			//*********************************************
+			case 'S':
+			  Serial.println("Entering a test message into the System Log.");
           
-          // Let Monitor know not to sleep until we finish
-          // setting the clock.
-          keepAwakeFlags |= (1<<CONSOLE_TASK);
-          // Schedule the console task to write a test message
-          // to the System Log.
-          tasksState[CONSOLE_TASK] = CNSL_SYSLOG_MSG;
-        break;        
-        //*********************************************
-        //*********************************************
-        case 's':
-          Serial.println("Solar Regulator Enable.");
-          digitalWrite(SOLAR_REG_ENABLE, HIGH);
-          consoleExit();
-        break;        
-        case 'x':
-          Serial.println("Solar Regulator Disable.");
-          digitalWrite(SOLAR_REG_ENABLE, LOW);
-          consoleExit();
-        break;
-        //*********************************************
-        //*********************************************  
-        case 't':
-          Serial.println("SD Card Testing Started.");
-          TestSdOperation();
-          Serial.println("SD Card Testing Completed");
-          consoleExit();
-        break;        
-        //*********************************************
-        //*********************************************  
-        case 'm':
-          MakeAnalogMeasurements();
-          consoleExit();
-        break;        
-        //*********************************************
-        //*********************************************  
-        default:
-          Serial.println("Illegal command.");
-          consoleExit();
-        break;
+			  // Let Monitor know not to sleep until we finish
+			  // setting the clock.
+			  keepAwakeFlags |= (1<<CONSOLE_TASK);
+			  // Schedule the console task to write a test message
+			  // to the System Log.
+			  tasksState[CONSOLE_TASK] = CNSL_SYSLOG_MSG;
+			break;        
+			//*********************************************
+			//*********************************************
+			case 's':
+			  Serial.println("Solar Regulator Enable.");
+			  digitalWrite(SOLAR_REG_ENABLE, HIGH);
+			  consoleExit();
+			break;        
+			case 'x':
+			  Serial.println("Solar Regulator Disable.");
+			  digitalWrite(SOLAR_REG_ENABLE, LOW);
+			  consoleExit();
+			break;
+			//*********************************************
+			//*********************************************  
+			case 't':
+			  Serial.println("SD Card Testing Started.");
+			  TestSdOperation();
+			  Serial.println("SD Card Testing Completed");
+			  consoleExit();
+			break;        
+			//*********************************************
+			//*********************************************  
+			case 'm':
+			  MakeAnalogMeasurements();
+			  consoleExit();
+			break;        
+			//*********************************************
+			//*********************************************  
+			default:
+			  Serial.println("Illegal command.");
+			  consoleExit();
+			break;
 
-        case 'M':
-          Serial.println("Enabling Quectel M10 Modem.");
-          // Let Monitor know not to sleep until we finish
-          // setting the clock.
-          keepAwakeFlags |= (1<<CONSOLE_TASK);
-          // Schedule the console task to get the arguments 
-          // for setting the RTC from the IDE Serial Console
-          // input.
-          tasksState[CONSOLE_TASK] = CNSL_ENABLE_MODEM;
-        break;        
-
-
-
-      }  //  End of switch(Serial.read())      
-    }  // End of if(Serial.available() != 0)
-    else 
-    {
-      Serial.println("Error console scheduled with no input?");
-      delay(1000);
-      if(Serial.available() > 1) // if we received too many bytes then clear the buffer
-      Serial.flush();     
-      consoleExit();     
-    }
-    break;
+			case 'M':
+			  Serial.println("Enabling Quectel M10 Modem.");
+			  // Let Monitor know not to sleep until we finish
+			  // setting the clock.
+			  keepAwakeFlags |= (1<<CONSOLE_TASK);
+			  // Schedule the console task to get the arguments 
+			  // for setting the RTC from the IDE Serial Console
+			  // input.
+			  tasksState[CONSOLE_TASK] = CNSL_ENABLE_MODEM;
+			break;        
+		  }  //  End of switch(Serial.read())      
+		}  // End of if(Serial.available() != 0)
+		else 
+		{
+		  Serial.println("Error console scheduled with no input?");
+		  delay(1000);
+		  if(Serial.available() > 1) // if we received too many bytes then clear the buffer
+		  Serial.flush();     
+		  consoleExit();     
+		}
+    break;	//	Break out from case TASK_INIT_STATE.
     
     case CNSL_GET_RTC_ARGS:
       // We are here to get the RTC date-time string from the 
@@ -592,9 +611,9 @@ boolean cnslTimeout()
     elapsedTime = 
       MAX_UNSIGNED_LONG - cnslPreviousMillis + currentMillis;
     if (elapsedTime >= cnslTimeoutPeriod)
-      return 1; //timeout period has been reached
+      return true; //timeout period has been reached
     else
-      return 0; //timeout period has not been reached
+      return false; //timeout period has not been reached
   }
   //time has not rolled over, simply compute elaspedTime
   else
