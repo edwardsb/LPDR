@@ -1,5 +1,9 @@
 # Created by https://www.gitignore.io
 
+#Hidden and tmp files
+~*
+
+
 ### OSX ###
 .DS_Store
 .AppleDouble
